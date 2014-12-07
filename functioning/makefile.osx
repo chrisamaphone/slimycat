@@ -1,5 +1,5 @@
 OUTPUT_APP=Awesome
-ICON=media/graphics/ExplatTheRobot.icns
+ICON=assets/SlimyCat.icns
 OUTPUT_EXE=game.exe
 MAKE=make
 

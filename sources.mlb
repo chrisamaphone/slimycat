@@ -4,4 +4,5 @@ $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
 functioning/sources.mlb
 board.sml
 editor.sml
+simulate.sml
 slimycat.sml
