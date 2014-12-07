@@ -67,6 +67,7 @@ struct
     processLines ins 0 board
   end
 
+  (*
   fun saveBoard board width height fname =
   let
     val outs = TextIO.openOut fname
@@ -85,5 +86,6 @@ struct
     (fn (pos, tile) => ...)
     board
   end
+  *)
 
 end
