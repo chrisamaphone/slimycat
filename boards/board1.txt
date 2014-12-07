@@ -1,0 +1,8 @@
+X X X X X X X X
+X % . . . . . X
+X . . % E . . X
+X . % . . S . X
+X . . * . . . X
+X . W # * N . X
+X . * # * . * X
+X X X X X X X X
