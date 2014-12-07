@@ -51,5 +51,5 @@ end
 
 structure Main =
 struct
-    structure S = RunGame (Game)
+    structure S = RunGame (SlimyCat)
 end
