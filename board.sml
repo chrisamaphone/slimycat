@@ -2,6 +2,7 @@ structure Board =
 struct
   datatype direction = N | S | E | W
   datatype tile = Cat of direction | Wall | Slime of bool (* active *)
+                | Treat
                   (* NB: no "Empty" -- only tiles with stuff are represented *)
 
   structure IntPairOrd =
@@ -23,5 +24,47 @@ struct
   val insert = IntPairMap.insert'
   val find = IntPairMap.find
   val mapi = IntPairMap.mapi
+
+  (* Parsing text file representation *)
+  fun loadBoard fname =
+  let
+    val ins = TextIO.openIn fname
+    val board = empty
+    fun stringToTile s =
+      (case s of
+            "X" => SOME Wall
+          | "%" => SOME Treat
+          | "E" => SOME (Cat E)
+          | "N" => SOME (Cat N)
+          | "S" => SOME (Cat S)
+          | "W" => SOME (Cat W)
+          | "#" => SOME (Slime false)
+          | "*" => SOME (Slime true)
+          | _ => NONE)
+    fun processLine line =
+      let
+        val tokens = String.tokens (Char.isSpace) line
+      in
+        map stringToTile tokens
+      end
+    fun processLines stream y board =
+      (case (TextIO.inputLine stream) of
+           NONE => board
+         | SOME line =>
+             let
+               val tiles = processLine line
+               val boardWithAddedLine =
+                  ListUtil.foldli
+                  (fn (x,tile,b) => 
+                      case tile of
+                          NONE => b
+                        | SOME tile => IntPairMap.insert (b, (x,y), tile)
+                  ) board tiles
+             in
+               processLines stream (y+1) boardWithAddedLine
+             end)
+  in
+    processLines ins 0 board
+  end
 
 end
