@@ -9,8 +9,26 @@ struct
   val use_gl = false
   val ticks_per_second = 1
 
-  (* Board and rendering *)
-  type state = Board.board
+  (* editor stuff *)
+  datatype mode = EDIT | PLAY
+  fun flip EDIT = PLAY
+    | flip PLAY = EDIT
+  val palette = [Board.Wall, Board.Treat, Board.Slime true,
+                  Board.Cat Board.E, Board.Cat Board.W, 
+                  Board.Cat Board.N, Board.Cat Board.S]
+
+  (* EDITOR DESIGN:
+  * while editing, we need to track what brush is selected (if any)
+  * on mouseup (in EDIT mode only!):
+  *   if mouse is over palette, figure out which brush,
+  *     and change to that brush
+  *   if mouse is over board and a brush is selected,
+  *     figure out which board index we're over,
+  *     and do a table insert (w/overwrite/replace behavior!)
+  *     on the board 
+  *)
+
+  type state = Board.board * mode
 
   (*
   val init_list =
@@ -21,8 +39,9 @@ struct
 
   val initstate = foldl (Board.insert) Board.empty init_list
   *)
-  val initstate = Board.loadBoard "boards/board1.txt"
+  val initstate = (Board.loadBoard "boards/board1.txt", EDIT)
 
+  (* Board and rendering *)
   val tiles_wide = 8
   val tiles_high = 8
   val tile_size = 64
@@ -48,7 +67,13 @@ struct
       | (Board.Cat Board.N) => imageCatN
       | (Board.Cat Board.S) => imageCatS
 
-  fun render screen board = 
+  (* XXX add editor stuff; buttons depend on mode *)
+  (* editor stuff for rendering *)
+  val top_bar_height = 128 (* no top bar yet tho... *)
+  val palette_pos = (tile_size * (tiles_wide + 2), top_bar_height)
+  val pallet_width = 2
+
+  fun render screen (board, mode) = 
   let in
     SDL.clearsurface (screen, SDL.color(0wxff,0wxff,0wxff,0wxff));
     (* floor *)
@@ -60,6 +85,13 @@ struct
       (fn ((x,y), tile) =>
         SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size))
       board;
+    (* palette *)
+    ListUtil.appi
+      (fn (tile,i) =>
+        SDL.blitall(tile_image tile, screen, 
+          (#1 palette_pos) + tile_size* (i mod pallet_width),
+          (#2 palette_pos) + tile_size * (i div pallet_width)))
+      palette;
     SDL.flip screen
   end
 
@@ -99,14 +131,23 @@ struct
       | Board.Cat dir => [pos, move pos dir]
 
   (* Input handling *)
-  fun handle_event e board = 
+  (* SPACE - start/stop sim
+  *  q - quit
+  *  r - reset board
+  *)
+  fun handle_event e (board, mode) = 
     case e of
          SDL.E_KeyDown {sym=SDL.SDLK_q} =>
          let in
            Board.saveBoard board tiles_wide tiles_high "boards/board-out.txt";
            NONE
          end
-      | _ =>  SOME board
+      | SDL.E_KeyDown {sym=SDL.SDLK_SPACE} =>
+          SOME (board, flip mode)
+      | SDL.E_KeyDown {sym=SDL.SDLK_r} =>
+          SOME initstate
+          (* XXX this should reload the board saved from the editor *)
+      | _ =>  SOME (board, mode)
 
   (**** william ****)
 
@@ -179,7 +220,8 @@ struct
 
   (**** / william ****)
 
-  fun tick board = SOME (applyAll (resolve (updates board)) board)
+  fun tick (board, PLAY) = SOME (applyAll (resolve (updates board)) board, PLAY)
+    | tick (board, EDIT) = SOME (board, EDIT)
 
 end
 
