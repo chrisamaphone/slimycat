@@ -1,23 +1,80 @@
-structure SlimyCat = 
+structure SlimyCat : GAME = 
 struct
-  datatype direction = N | S | E | W
-  datatype tile = Cat of direction | Wall | Slime of bool (* active *)
-                  (* NB: no "Empty" -- only tiles with stuff are represented *)
 
-  structure IntPairOrd =
-  struct
-    type ord_key = int * int
-    fun compare ((x1, y1), (x2, y2)) =
-      if x1 = x2 andalso y1 = y2 then EQUAL
-      else if x1 < x2 then LESS
-        else if x1 = x2 then
-          Int.compare (y1, y2)
-          else
-            GREATER
+  (* SDL setup *)
+  type screen = SDL.surface
+  fun initscreen s = () (* ? *)
+  val width = 1024
+  val height = 768
+  val use_gl = false
+  val ticks_per_second = 1
+
+  (* Board and rendering *)
+  type state = Board.board
+
+  val init_list =
+    [((0,0),(Board.Cat Board.E)),
+     ((1,1),(Board.Slime false)),
+     ((2,2),(Board.Slime true)),
+     ((3,3),Board.Wall)]
+
+  val initstate = foldl (Board.insert) Board.empty init_list
+
+  val tiles_wide = 8
+  val tiles_high = 8
+  val tile_size = 64
+
+  val imageFloor = Graphics.requireimage "assets/carpet.png"
+  val imageWall = Graphics.requireimage "assets/wall.png"
+  val imageSlime_active = Graphics.requireimage "assets/slime_active.png"
+  val imageSlime_dormant = Graphics.requireimage "assets/slime_dormant.png"
+  val imageCatW = Graphics.requireimage "assets/cat_L.png"
+  val imageCatN = Graphics.requireimage "assets/cat_U.png"
+  (* XXX make CatR and CatD w/graphics functions? *)
+  val imageCatE = imageCatW
+  val imageCatS = imageCatN
+
+  fun tile_image tile =
+    case tile of
+        Board.Wall => imageWall
+      | (Board.Slime true) => imageSlime_active
+      | (Board.Slime false) => imageSlime_dormant
+      | (Board.Cat Board.W) => imageCatW
+      | (Board.Cat Board.E) => imageCatE
+      | (Board.Cat Board.N) => imageCatN
+      | (Board.Cat Board.S) => imageCatS
+
+  fun render screen board = 
+  let in
+    SDL.clearsurface (screen, SDL.color(0wxff,0wxff,0wxff,0wxff));
+    (* floor *)
+    List.tabulate (tiles_wide,
+      (fn x => List.tabulate (tiles_high, (fn y => 
+        SDL.blitall(imageFloor, screen, x*tile_size, y*tile_size)))));
+    (* board tiles *)
+    Board.mapi
+      (fn ((x,y), tile) =>
+        SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size))
+      board;
+    SDL.flip screen
   end
 
-  structure IntPairMap = SplayMapFn (IntPairOrd)
-  datatype board = Board of tile IntPairMap.map
+  (*
+  let
+    val rows = 
+      List.tabulate (tiles_wide,
+        (fn x => (List.tabulate (tiles_high, (fn y => render_pos (x,y) board)))))
+  in
+    ListUtil.appi 
+      (fn (row,y) => 
+        ListUtil.appi 
+          (fn (pic,x) => SDL.blitall(pic, screen, x*tile_size, y*tile_size))
+        row    
+      ) rows;
+  end
+  *)
+
+  (* Game logic *)
 
   fun move (x, y) N = (x, y-1)
     | move (x, y) S = (x, y+1)
@@ -26,44 +83,23 @@ struct
 
   fun influenced (pos as (x, y)) tile =
     case tile of
-        Wall => []
-      | Slime false => []
-      | Slime true => map (move pos) [N, S, E, W]
-      | Cat dir => [pos, move pos dir]
+        Board.Wall => []
+      | Board.Slime false => []
+      | Board.Slime true => map (move pos) [Board.N, Board.S, Board.E, Board.W]
+      | Board.Cat dir => [pos, move pos dir]
+
+  (* Input handling *)
+  fun handle_event e board = 
+    case e of
+         SDL.E_KeyDown {sym=SDLK_q} => NONE
+      | _ =>  SOME board
+
+  fun tick board = SOME board
+
+end
 
 
-  (* functioning stuff *)
-  type state = board
-
-  val init_list =
-    [((0,0),(Cat E)),
-     ((0,1),(Slime false)),
-     ((0,2),(Slime true)),
-     ((0,3),Wall)]
-
- (*  val initstate : state = Board (IntPairMap.empty) *)
-  val initstate = Board (foldl (IntPairMap.insert') IntPairMap.empty init_list)
-  
-
-  val tiles_wide = 8
-  val tiles_high = 8
-
-  fun render_pos pos board =
-    case IntPairMap.find (board, pos) of
-         NONE => "_"
-      | SOME Wall => "X"
-      | SOME (Slime true) => "*"
-      | SOME (Slime false) => "#"
-      | SOME (Cat _) => "&"
-
-  fun render screen (Board b) =
-  let
-    val rows = 
-      List.tabulate (tiles_wide,
-        (fn x => (List.tabulate (tiles_high, (fn y => render_pos (x,y) b)))))
-    val string =
-      String.concatWith "\n" (map (String.concatWith "|") rows)
-  in
-    print string
-  end
+structure Main =
+struct
+    structure S = RunGame (SlimyCat)
 end
