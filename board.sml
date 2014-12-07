@@ -67,4 +67,23 @@ struct
     processLines ins 0 board
   end
 
+  fun saveBoard board width height fname =
+  let
+    val outs = TextIO.openOut fname
+    fun tileToString t =
+      (case t of
+            Wall => "X"
+          | Treat => "%"
+          | (Cat E) => "E"
+          | (Cat W) => "W"
+          | (Cat N) => "N"
+          | (Cat S) => "S"
+          | (Slime true) => "*"
+          | (Slime false) => "#")
+  in
+    IntPairMap.mapi
+    (fn (pos, tile) => ...)
+    board
+  end
+
 end
