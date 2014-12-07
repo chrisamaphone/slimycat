@@ -76,10 +76,10 @@ struct
 
   (* Game logic *)
 
-  fun move (x, y) N = (x, y-1)
-    | move (x, y) S = (x, y+1)
-    | move (x, y) W = (x-1, y)
-    | move (x, y) E = (x+1, y)
+  fun move (x, y) Board.N = (x, y-1)
+    | move (x, y) Board.S = (x, y+1)
+    | move (x, y) Board.W = (x-1, y)
+    | move (x, y) Board.E = (x+1, y)
 
   fun influenced (pos as (x, y)) tile =
     case tile of
