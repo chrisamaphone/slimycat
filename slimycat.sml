@@ -163,7 +163,7 @@ struct
     | resolvePair (u_cat as (Set (_, Cat _)), Set (_, Slime _)) = u_cat
     | resolvePair (Set (_, Slime _), u_cat as (Set (_, Cat _))) = u_cat
       (* arbitrary? *)
-    (* | resolvePair (u1, u2) = u2 *)
+    | resolvePair (u1, u2) = u2
 
   fun resolvePairs [] = []
     | resolvePairs [u] = [u]
@@ -179,7 +179,7 @@ struct
 
   (**** / william ****)
 
-  fun tick board = SOME (applyAll (updates board) board)
+  fun tick board = SOME (applyAll (resolve (updates board)) board)
 
 end
 
