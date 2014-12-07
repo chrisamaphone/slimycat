@@ -22,13 +22,13 @@ bin/sdlmix.o: bin sdlml/sdlmix.c
 
 .PHONY: game 
 game: bin/sdlml.o bin/sdlmix.o
-	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) game.cm bin/sdlml.o bin/sdlmix.o
+	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) sources.mlb bin/sdlml.o bin/sdlmix.o
 
-.PHONY: examples/*/ examples/*
-examples/*/: bin/sdlml.o bin/sdlmix.o
-	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) $@sources.cm bin/sdlml.o bin/sdlmix.o
-examples/*:
-	$(MAKE) $@/
+# .PHONY: examples/*/ examples/*
+# examples/*/: bin/sdlml.o bin/sdlmix.o
+# 	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) $@sources.cm bin/sdlml.o bin/sdlmix.o
+# examples/*:
+# 	$(MAKE) $@/
 
 .PHONY: clean
 clean:

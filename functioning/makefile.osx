@@ -32,16 +32,16 @@ bin/sdlmix.o: bin sdlml/sdlmix.c
 .PHONY: game
 game: bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
 	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
-	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) game.cm bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
+	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) sources.mlb bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
 	$(MAKE) desktop
 
-.PHONY: examples/* examples/*/
-examples/*:
-	$(MAKE) $@/
-examples/*/: bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
-	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
-	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) $@sources.cm bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
-	$(MAKE) desktop
+# .PHONY: examples/* examples/*/
+# examples/*:
+# 	$(MAKE) $@/
+# examples/*/: bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
+# 	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
+# 	mlton $(MLTON_FLAGS) -output $(OUTPUT_EXE) $@sources.cm bin/sdlml.o bin/sdlmix.o bin/sdlmain.o
+# 	$(MAKE) desktop
 
 .PHONY:app
 app: 
