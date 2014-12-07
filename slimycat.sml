@@ -34,9 +34,8 @@ struct
   val imageSlime_dormant = Graphics.requireimage "assets/slime_dormant.png"
   val imageCatW = Graphics.requireimage "assets/cat_L.png"
   val imageCatN = Graphics.requireimage "assets/cat_U.png"
-  (* XXX make CatR and CatD w/graphics functions? *)
-  val imageCatE = imageCatW
-  val imageCatS = imageCatN
+  val imageCatE =  Graphics.requireimage "assets/cat_R.png"
+  val imageCatS = Graphics.requireimage "assets/cat_D.png"
 
   fun tile_image tile =
     case tile of
