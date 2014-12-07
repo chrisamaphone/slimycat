@@ -123,6 +123,7 @@ struct
                   | Set of (int * int) * tile
     
   fun update board pos Wall = []
+    | update board pos Treat = []
     | update board pos (cat as (Cat dir)) =
         let val pos' = move pos dir in
           if clear board pos'
