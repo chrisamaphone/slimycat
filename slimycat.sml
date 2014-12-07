@@ -81,7 +81,10 @@ struct
     (* board tiles *)
     Board.mapi
       (fn ((x,y), tile) =>
-        SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size))
+        (* render only things in bounds *)
+        if 0 <= x andalso x < tiles_high andalso 0 <= y andalso y < tiles_wide
+        then SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size)
+        else ())
       board;
     (* palette *)
     ListUtil.appi
