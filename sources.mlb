@@ -3,6 +3,7 @@ $(SML_LIB)/basis/mlton.mlb
 $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
 functioning/sources.mlb
 board.sml
-editor.sml
 simulate.sml
+screen_consts.sml
+editor.sml
 slimycat.sml

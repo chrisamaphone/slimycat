@@ -31,9 +31,9 @@ struct
   val initstate = (Board.loadBoard "boards/board1.txt", EDIT editor_init)
 
   (* Board and rendering *)
-  val tiles_wide = 8
-  val tiles_high = 8
-  val tile_size = 64
+  val tiles_wide = Consts.tiles_wide
+  val tiles_high = Consts.tiles_high
+  val tile_size = Consts.tile_size
 
   val imageFloor = Graphics.requireimage "assets/carpet.png"
   val imageWall = Graphics.requireimage "assets/wall.png"
@@ -57,11 +57,6 @@ struct
       | (Board.Cat Board.S) => imageCatS
 
 
-  (* stuff for rendering editor *)
-  val top_bar_height = 128 (* no top bar yet tho... *)
-  val palette_pos = (tile_size * (tiles_wide + 2), top_bar_height)
-  val palette_width = 2
-
   fun render screen (board, mode) = 
   let in
     SDL.clearsurface (screen, SDL.color(0wxff,0wxff,0wxff,0wxff));
@@ -78,8 +73,8 @@ struct
     ListUtil.appi
       (fn (tile,i) =>
         SDL.blitall(tile_image tile, screen, 
-          (#1 palette_pos) + tile_size* (i mod palette_width),
-          (#2 palette_pos) + tile_size * (i div palette_width)))
+          (#1 Consts.palette_pos) + tile_size* (i mod Consts.palette_width),
+          (#2 Consts.palette_pos) + tile_size * (i div Consts.palette_width)))
       Editor.palette;
     (* brush *)
     case mode of

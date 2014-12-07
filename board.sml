@@ -24,6 +24,10 @@ struct
   val insert = IntPairMap.insert'
   val find = IntPairMap.find
   val mapi = IntPairMap.mapi
+  val filteri = IntPairMap.filteri
+  val numItems = IntPairMap.numItems
+  val listItemsi = IntPairMap.listItemsi
+  val remove = IntPairMap.remove
 
   (* Parsing text file representation *)
   fun loadBoard fname =
