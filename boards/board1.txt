@@ -1,6 +1,6 @@
 X X X X X X X X
 X % . . . . . X
-X . . % E . . X
+X . . % E . . .
 X . % . . S . X
 X . . * . . . X
 X . W # * N . X

@@ -114,9 +114,9 @@ struct
     open Board
   in
 
-  (* Is a board position empty? *)
   fun inBounds (x, y) = 0 <= x andalso x < tiles_wide andalso
                         0 <= y andalso y < tiles_high
+  (* Is a board position empty? *)
   fun clear board pos = inBounds pos andalso Board.find (board, pos) = NONE
 
   datatype update = Del of int * int
