@@ -37,11 +37,21 @@ struct
   val width = 1024
   val height = 768
 
-  fun render s () = ()
+  val catpic = Graphics.requireimage "assets/cat_L.png"
+
+  fun render s () =
+  let in 
+    SDL.clearsurface (s, SDL.color (0wxff,0wxff,0wxff,0wxff));
+    SDL.blitall(catpic, s, 100, 100);
+    SDL.flip s
+  end
 
   val use_gl = false
 
-  fun handle_event e () = SOME ()
+  fun handle_event e () = 
+    case e of
+         SDL.E_KeyDown {sym=SDLK_q} => NONE
+      | _ =>  SOME ()
 
   fun tick () = SOME ()
 

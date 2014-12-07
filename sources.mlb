@@ -1,4 +1,3 @@
 $(SML_LIB)/basis/basis.mlb
 functioning/sources.mlb
-sdl-ml/sources.mlb
-slimycat.sml
+game.sml
