@@ -10,12 +10,21 @@ struct
   val ticks_per_second = 1
 
   (* editor stuff *)
-  datatype mode = PLAY
+  datatype mode = PLAY of Board.board (* original board *)
+                | PAUSE of Board.board (* original board *)
                 | EDIT of {mouse_x:int, mouse_y:int, brush:Board.tile option}
   val editor_init = {mouse_x=0, mouse_y=0, brush=NONE}
-  fun flip (EDIT _) = PLAY
-    | flip PLAY = EDIT editor_init
-  
+  fun flip (EDIT _) orig = PLAY orig
+    | flip (PLAY orig) _ = PAUSE orig
+    | flip (PAUSE orig) _ = PLAY orig
+    
+  fun reset (PLAY orig) _ = (orig, PLAY orig)
+    | reset (PAUSE orig) _ = (orig, PAUSE orig)
+    | reset (EDIT e) b = (b, EDIT e)
+
+  fun edit (PLAY orig) b = (orig, EDIT editor_init)
+    | edit (PAUSE orig) b = (orig, EDIT editor_init)
+    | edit (EDIT e) b = (b, EDIT e)
  
   type state = Board.board * mode
 
@@ -67,7 +76,10 @@ struct
     (* board tiles *)
     Board.mapi
       (fn ((x,y), tile) =>
-        SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size))
+        (* render only things in bounds *)
+        if 0 <= x andalso x < tiles_high andalso 0 <= y andalso y < tiles_wide
+        then SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size)
+        else ())
       board;
     (* palette *)
     ListUtil.appi
@@ -79,7 +91,8 @@ struct
     (* brush *)
     case mode of
          EDIT {mouse_x,mouse_y,brush=SOME brush}
-          => SDL.blitall(tile_image brush, screen, mouse_x, mouse_y)
+          => SDL.blitall(tile_image brush, screen, mouse_x - tile_size div 2,
+                                                   mouse_y - tile_size div 2)
       | _ => ();
     SDL.flip screen
   end
@@ -117,13 +130,15 @@ struct
            NONE
          end
       | SDL.E_KeyDown {sym=SDL.SDLK_SPACE} =>
-          SOME (board, flip mode)
+          SOME (board, flip mode board)
       | SDL.E_KeyDown {sym=SDL.SDLK_r} =>
-          SOME initstate
-          (* XXX this should reload the board saved from the editor *)
+          SOME (reset mode board)
+      | SDL.E_KeyDown {sym=SDL_SDLK_e} =>
+          SOME (edit mode board)
       | e =>  
           (case mode of
-               PLAY => SOME (board, mode)
+               PLAY _ => SOME (board, mode)
+             | PAUSE _ => SOME (board, mode)
              | EDIT editor_state => 
                  let
                    val (board, state) = Editor.handle_event e (board, editor_state)
@@ -131,7 +146,8 @@ struct
                    SOME (board, EDIT state)
                  end)
 
-  fun tick (board, PLAY) = SOME (Simulate.step board, PLAY)
+  fun tick (board, PLAY orig) = SOME (Simulate.step board, PLAY orig)
+    | tick (board, PAUSE orig) = SOME (board, PAUSE orig)
     | tick (board, EDIT e) = SOME (board, EDIT e)
 
 end

@@ -9,12 +9,10 @@ struct
   struct
     type ord_key = int * int
     fun compare ((x1, y1), (x2, y2)) =
-      if x1 = x2 andalso y1 = y2 then EQUAL
-      else if x1 < x2 then LESS
-        else if x1 = x2 then
-          Int.compare (y1, y2)
-          else
-            GREATER
+      if x1 < x2 then LESS
+      else if x1 = x2 then
+        Int.compare (y1, y2)
+        else GREATER
   end
 
   structure IntPairMap = SplayMapFn (IntPairOrd)
@@ -51,12 +49,25 @@ struct
       in
         map stringToTile tokens
       end
-    fun processLines stream y board =
+    (* Add an implicit border along the top, bottom, left, and right edges *)
+    fun addBorder (width, height) board =
+      let val top = List.tabulate (width, fn x => (x, ~1))
+          val bot = List.tabulate (width, fn x => (x, height))
+          val lt = List.tabulate (height, fn y => (~1, y))
+          val rt = List.tabulate (height, fn y => (width, y))
+      in
+        foldl
+          (fn ((x, y), b) => IntPairMap.insert (b, (x, y), Wall))
+          board
+          (top @ bot @ lt @ rt)
+      end
+    fun processLines stream width y board =
       (case (TextIO.inputLine stream) of
-           NONE => board
+           NONE => addBorder (width, y) board
          | SOME line =>
              let
                val tiles = processLine line
+               val width = length tiles
                val boardWithAddedLine =
                   ListUtil.foldli
                   (fn (x,tile,b) => 
@@ -65,10 +76,10 @@ struct
                         | SOME tile => IntPairMap.insert (b, (x,y), tile)
                   ) board tiles
              in
-               processLines stream (y+1) boardWithAddedLine
+               processLines stream width (y+1) boardWithAddedLine
              end)
   in
-    processLines ins 0 board
+    processLines ins 0 0 board
   end
 
   fun saveBoard board width height fname =
