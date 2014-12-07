@@ -1,5 +1,8 @@
 $(SML_LIB)/basis/basis.mlb
+<<<<<<< HEAD
 $(SML_LIB)/basis/mlton.mlb
+=======
+>>>>>>> 1ded6709b17f82b7d56620e6ec2f2b370e706f27
 $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
 functioning/sources.mlb
 board.sml

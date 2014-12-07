@@ -11,7 +11,7 @@ CPPFLAGS=-I/usr/local/include -I${FRAMEWORKS}/SDL.framework/Versions/Current/Hea
 LIBS=-L/usr/lib
 DEBUG_MLTON_FLAGS=#-profile alloc #-const 'Exn.keepHistory true'
 MLTON_FLAGS=$(DEBUG_MLTON_FLAGS) -verbose 1 -cc-opt "-g -Dmain=SDL_main" -link-opt "-Wl,-rpath,@executable_path/../Frameworks -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa -framework SDL_mixer" -default-ann 'allowFFI true'
-RELEASEFILES=$(OUTPUT_EXE) ../assets media COPYING
+RELEASEFILES=$(OUTPUT_EXE) assets media COPYING
 
 default: game
 
