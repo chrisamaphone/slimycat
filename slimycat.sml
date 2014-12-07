@@ -97,7 +97,11 @@ struct
   (* Input handling *)
   fun handle_event e board = 
     case e of
-         SDL.E_KeyDown {sym=SDLK_q} => NONE
+         SDL.E_KeyDown {sym=SDL.SDLK_q} =>
+         let in
+           Board.saveBoard board tiles_wide tiles_high "boards/board-out.txt";
+           NONE
+         end
       | _ =>  SOME board
 
   fun tick board = SOME board

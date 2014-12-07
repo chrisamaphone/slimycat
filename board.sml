@@ -67,7 +67,6 @@ struct
     processLines ins 0 board
   end
 
-  (*
   fun saveBoard board width height fname =
   let
     val outs = TextIO.openOut fname
@@ -81,11 +80,22 @@ struct
           | (Cat S) => "S"
           | (Slime true) => "*"
           | (Slime false) => "#")
+    fun makeRow y =
+      String.concatWith " "
+      (List.tabulate (width,
+        fn x => (
+            case IntPairMap.find (board, (x,y)) of
+                 NONE => "."
+               | SOME tile => tileToString tile)
+        )
+      )
+    fun writeLines [] = ()
+      | writeLines (l::ls) = 
+        (TextIO.output (outs, l^"\n"); writeLines ls)
   in
-    IntPairMap.mapi
-    (fn (pos, tile) => ...)
-    board
+    writeLines
+    (List.tabulate (height, fn y => makeRow y));
+    TextIO.closeOut outs
   end
-  *)
 
 end
