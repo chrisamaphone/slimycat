@@ -2,6 +2,7 @@ structure Board =
 struct
   datatype direction = N | S | E | W
   datatype tile = Cat of direction | Wall | Slime of bool (* active *)
+                | Treat
                   (* NB: no "Empty" -- only tiles with stuff are represented *)
 
   structure IntPairOrd =
@@ -23,5 +24,78 @@ struct
   val insert = IntPairMap.insert'
   val find = IntPairMap.find
   val mapi = IntPairMap.mapi
+
+  (* Parsing text file representation *)
+  fun loadBoard fname =
+  let
+    val ins = TextIO.openIn fname
+    val board = empty
+    fun stringToTile s =
+      (case s of
+            "X" => SOME Wall
+          | "%" => SOME Treat
+          | "E" => SOME (Cat E)
+          | "N" => SOME (Cat N)
+          | "S" => SOME (Cat S)
+          | "W" => SOME (Cat W)
+          | "#" => SOME (Slime false)
+          | "*" => SOME (Slime true)
+          | _ => NONE)
+    fun processLine line =
+      let
+        val tokens = String.tokens (Char.isSpace) line
+      in
+        map stringToTile tokens
+      end
+    fun processLines stream y board =
+      (case (TextIO.inputLine stream) of
+           NONE => board
+         | SOME line =>
+             let
+               val tiles = processLine line
+               val boardWithAddedLine =
+                  ListUtil.foldli
+                  (fn (x,tile,b) => 
+                      case tile of
+                          NONE => b
+                        | SOME tile => IntPairMap.insert (b, (x,y), tile)
+                  ) board tiles
+             in
+               processLines stream (y+1) boardWithAddedLine
+             end)
+  in
+    processLines ins 0 board
+  end
+
+  fun saveBoard board width height fname =
+  let
+    val outs = TextIO.openOut fname
+    fun tileToString t =
+      (case t of
+            Wall => "X"
+          | Treat => "%"
+          | (Cat E) => "E"
+          | (Cat W) => "W"
+          | (Cat N) => "N"
+          | (Cat S) => "S"
+          | (Slime true) => "*"
+          | (Slime false) => "#")
+    fun makeRow y =
+      String.concatWith " "
+      (List.tabulate (width,
+        fn x => (
+            case IntPairMap.find (board, (x,y)) of
+                 NONE => "."
+               | SOME tile => tileToString tile)
+        )
+      )
+    fun writeLines [] = ()
+      | writeLines (l::ls) = 
+        (TextIO.output (outs, l^"\n"); writeLines ls)
+  in
+    writeLines
+    (List.tabulate (height, fn y => makeRow y));
+    TextIO.closeOut outs
+  end
 
 end

@@ -12,6 +12,7 @@ struct
   (* Board and rendering *)
   type state = Board.board
 
+  (*
   val init_list =
     [((0,0),(Board.Cat Board.E)), ((4,0), Board.Wall),
      ((1,1),(Board.Slime false)),
@@ -19,6 +20,8 @@ struct
      ((3,3),Board.Wall)]
 
   val initstate = foldl (Board.insert) Board.empty init_list
+  *)
+  val initstate = Board.loadBoard "boards/board1.txt"
 
   val tiles_wide = 8
   val tiles_high = 8
@@ -26,6 +29,7 @@ struct
 
   val imageFloor = Graphics.requireimage "assets/carpet.png"
   val imageWall = Graphics.requireimage "assets/wall.png"
+  val imageTreat = Graphics.requireimage "assets/treat.png"
   val imageSlime_active = Graphics.requireimage "assets/slime_active.png"
   val imageSlime_dormant = Graphics.requireimage "assets/slime_dormant.png"
   val imageCatW = Graphics.requireimage "assets/cat_L.png"
@@ -37,6 +41,7 @@ struct
   fun tile_image tile =
     case tile of
         Board.Wall => imageWall
+      | Board.Treat => imageTreat
       | (Board.Slime true) => imageSlime_active
       | (Board.Slime false) => imageSlime_dormant
       | (Board.Cat Board.W) => imageCatW
@@ -89,6 +94,7 @@ struct
   fun influenced (pos as (x, y)) tile =
     case tile of
         Board.Wall => []
+      | Board.Treat => []
       | Board.Slime false => []
       | Board.Slime true => map (move pos) [Board.N, Board.S, Board.E, Board.W]
       | Board.Cat dir => [pos, move pos dir]
@@ -96,7 +102,11 @@ struct
   (* Input handling *)
   fun handle_event e board = 
     case e of
-         SDL.E_KeyDown {sym=SDLK_q} => NONE
+         SDL.E_KeyDown {sym=SDL.SDLK_q} =>
+         let in
+           Board.saveBoard board tiles_wide tiles_high "boards/board-out.txt";
+           NONE
+         end
       | _ =>  SOME board
 
   (**** william ****)
