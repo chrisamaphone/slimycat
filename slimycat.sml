@@ -5,7 +5,7 @@ struct
   type screen = SDL.surface
   fun initscreen s = () (* ? *)
   val width = 1024
-  val height = 768
+  val height = 600
   val use_gl = false
   val ticks_per_second = 1
 
