@@ -36,16 +36,27 @@ struct
 
   datatype update = Del of int * int
                   | Set of (int * int) * tile
+
+  fun ortho dir = (rotate dir, rotate (rotate (rotate dir)))
     
   fun update board (pos, Wall) = []
     | update board (pos, Treat) = []
     | update board (pos, cat as (Cat dir)) =
-        let val pos' = move pos dir in
-          if clear board pos' orelse edible board pos'
-          (* Cats move in the direction they're facing if it's clear/edible *)
-          then [Del pos, Set (pos', cat)]
-          (* Otherwise, they rotate in place *)
-          else [Set (pos, Cat (rotate dir))]
+        let
+          val (l, r) = ortho dir
+        in
+          case (edible board (move pos l), edible board (move pos r)) of
+               (* turn toward treat if one is to my left or right *)
+               (true, _) => [Set (pos, Cat l)]
+             | (_, true) => [Set (pos, Cat r)]
+             | _ => (* otherwise, move straight or turn *)
+              let val pos' = move pos dir in
+                if clear board pos' orelse edible board pos'
+                (* Cats move in the direction they're facing if it's clear/edible *)
+                then [Del pos, Set (pos', cat)]
+                (* Otherwise, they rotate in place *)
+                else [Set (pos, Cat (rotate dir))]
+              end
         end
     | update board (pos, Slime false) = []
     | update board (pos, Slime true) =
