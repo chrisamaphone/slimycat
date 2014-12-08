@@ -18,9 +18,11 @@ struct
     | flip (PLAY orig) _ = PAUSE orig
     | flip (PAUSE orig) _ = PLAY orig
     
+  (*
   fun reset (PLAY orig) _ = (orig, PLAY orig)
     | reset (PAUSE orig) _ = (orig, PAUSE orig)
     | reset (EDIT e) b = (b, EDIT e)
+  *)
 
   fun edit (PLAY orig) b = (orig, EDIT editor_init)
     | edit (PAUSE orig) b = (orig, EDIT editor_init)
@@ -56,14 +58,15 @@ struct
 
   fun tile_image tile =
     case tile of
-        Board.Wall => imageWall
-      | Board.Treat => imageTreat
-      | (Board.Slime true) => imageSlime_active
-      | (Board.Slime false) => imageSlime_dormant
-      | (Board.Cat Board.W) => imageCatW
-      | (Board.Cat Board.E) => imageCatE
-      | (Board.Cat Board.N) => imageCatN
-      | (Board.Cat Board.S) => imageCatS
+        SOME Board.Wall => imageWall
+      | SOME Board.Treat => imageTreat
+      | SOME (Board.Slime true) => imageSlime_active
+      | SOME (Board.Slime false) => imageSlime_dormant
+      | SOME (Board.Cat Board.W) => imageCatW
+      | SOME (Board.Cat Board.E) => imageCatE
+      | SOME (Board.Cat Board.N) => imageCatN
+      | SOME (Board.Cat Board.S) => imageCatS
+      | NONE => imageFloor
 
 
   fun render screen (board, mode) = 
@@ -78,19 +81,20 @@ struct
       (fn ((x,y), tile) =>
         (* render only things in bounds *)
         if 0 <= x andalso x < tiles_high andalso 0 <= y andalso y < tiles_wide
-        then SDL.blitall(tile_image tile, screen, x*tile_size, y*tile_size)
+        then SDL.blitall(tile_image (SOME tile), screen,
+                         x*tile_size, y*tile_size)
         else ())
       board;
     (* palette *)
     ListUtil.appi
       (fn (tile,i) =>
         SDL.blitall(tile_image tile, screen, 
-          (#1 Consts.palette_pos) + tile_size* (i mod Consts.palette_width),
+          (#1 Consts.palette_pos) + tile_size * (i mod Consts.palette_width),
           (#2 Consts.palette_pos) + tile_size * (i div Consts.palette_width)))
       Editor.palette;
     (* brush *)
     case mode of
-         EDIT {mouse_x,mouse_y,brush=SOME brush}
+         EDIT {mouse_x,mouse_y,brush}
           => SDL.blitall(tile_image brush, screen, mouse_x - tile_size div 2,
                                                    mouse_y - tile_size div 2)
       | _ => ();
@@ -116,7 +120,7 @@ struct
   (* Input handling *)
   (* SPACE - start/stop sim
   *  q - quit
-  *  r - reset board
+  *  r or e - reset board and enter the editor
   *  (* not impl'd yet: *)
   *  s - save board (reset to that board)
   *
@@ -132,7 +136,7 @@ struct
       | SDL.E_KeyDown {sym=SDL.SDLK_SPACE} =>
           SOME (board, flip mode board)
       | SDL.E_KeyDown {sym=SDL.SDLK_r} =>
-          SOME (reset mode board)
+          SOME (edit mode board)
       | SDL.E_KeyDown {sym=SDL_SDLK_e} =>
           SOME (edit mode board)
       | e =>  
