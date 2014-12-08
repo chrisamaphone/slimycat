@@ -4,10 +4,10 @@ struct
   (* SDL setup *)
   type screen = SDL.surface
   fun initscreen s = () (* ? *)
-  val width = 1024
+  val width = 1200
   val height = 600
   val use_gl = false
-  val ticks_per_second = 1
+  val ticks_per_second = 2
 
   (* editor stuff *)
   datatype mode = PLAY of Board.board (* original board *)
@@ -99,6 +99,20 @@ struct
      end)
   end
 
+  val instructions = 
+    ["Welcome to SlimyCat!\n (cats can't actually be slimy)",
+    "Interface:",
+    "CLICK PALETTE TILE: select brush (edit mode)",
+    "CLICK BOARD TILE:   change tile (edit mode)",
+    "[SPACE]: start/pause the simulation",
+    "r:       restart the simulation and enter edit mode.",
+    "m:       toggle music.",
+    "q:       quit."]
+
+  fun fontDrawLines screen x y lines =
+    ListUtil.mapi 
+      (fn (l,i) => NormalFont.draw (screen, x, y + i*32, l))
+      lines
 
   fun render screen (board, mode) = 
   let in
@@ -117,8 +131,18 @@ struct
         else ())
       board;
     (* text *)
-    NormalFont.draw (screen, 32, 400,
+    (*
+    NormalFont.draw (screen, 32, Consts.tile_size * (Consts.tiles_high + 1),
        "welcome to SlimyCat!  Cats can't actually be slimy");
+    *)
+    fontDrawLines screen 
+      (Consts.tile_size * (Consts.tiles_wide + 1)) 
+      (Editor.palette_bottom + Consts.tile_size)
+      instructions;
+    (*
+    NormalFont.draw (screen, Consts.tile_size * (Consts.tiles_wide + 1),
+                      Editor.palette_bottom + Consts.tile_size,
+                      instructions); *)
     (* palette *)
     ListUtil.appi
       (fn (tile,i) =>
@@ -171,8 +195,16 @@ struct
           SOME (board, flip mode board)
       | SDL.E_KeyDown {sym=SDL.SDLK_r} =>
           SOME (edit mode board)
-      | SDL.E_KeyDown {sym=SDL_SDLK_e} =>
+      | SDL.E_KeyDown {sym=SDL.SDLK_e} =>
           SOME (edit mode board)
+      | SDL.E_KeyDown {sym=SDL.SDLK_m} =>
+          (
+            (if SDLMusic.is_paused () then
+              SDLMusic.resume ()
+            else
+              SDLMusic.pause ());
+            SOME (board, mode)
+          )
       | e =>  
           (case mode of
                PLAY _ => SOME (board, mode)

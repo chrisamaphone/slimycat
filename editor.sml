@@ -16,6 +16,12 @@ struct
                   Board.Cat Board.N, Board.Cat Board.S]
                 @ [NONE]
 
+  val palette_height =
+    Consts.tile_size * (((length palette)+1) div Consts.palette_width)
+
+  (* lowest y coord of palette *)
+  val palette_bottom = (#2 Consts.palette_pos) + palette_height
+
   (* bounding box calculation for square targets *)
   fun within (x, y) (target_x, target_y) target_size =
     x >= target_x andalso y >= target_y andalso
