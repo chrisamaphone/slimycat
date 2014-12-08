@@ -188,6 +188,10 @@ struct
     | tick (board, PAUSE orig) = SOME (board, PAUSE orig)
     | tick (board, EDIT e) = SOME (board, EDIT e)
 
+
+  val (SOME song) = SDLMusic.load "assets/cat.wav"
+  val () = SDLMusic.loop song
+  (* XXX make "s" or "m" toggle sound *)
 end
 
 

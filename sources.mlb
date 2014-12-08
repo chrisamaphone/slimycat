@@ -2,6 +2,8 @@ $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/basis/mlton.mlb
 $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
 functioning/sources.mlb
+sdlml/sdlmix-sig.sml
+sdlml/sdlmix.sml
 board.sml
 simulate.sml
 screen_consts.sml
