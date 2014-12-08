@@ -69,6 +69,37 @@ struct
       | NONE => imageFloor
 
 
+  (* font stuff *)
+  local
+    val charmap = " ABCDEFGHIJKLMNOPQRSTUVWXZY"
+                ^ "abcdefghijklmnopqrstuvwxyz"
+                ^ "0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?"
+  in
+  structure HugeFont =
+    FontFn
+    (struct
+      val surf = Graphics.requireimage "media/graphics/fonthuge.png"
+      val styles = 7
+      val charmap = charmap
+      val width = 27
+      val height = 48
+      val overlap = 3
+      val dims = 3
+     end)
+  structure NormalFont =
+    FontFn
+    (struct
+      val surf = Graphics.requireimage "media/graphics/font.png"
+      val styles = 6
+      val charmap = charmap
+      val width = 9
+      val height = 16
+      val overlap = 0
+      val dims = 3
+     end)
+  end
+
+
   fun render screen (board, mode) = 
   let in
     SDL.clearsurface (screen, SDL.color(0wxff,0wxff,0wxff,0wxff));
@@ -85,6 +116,9 @@ struct
                          x*tile_size, y*tile_size)
         else ())
       board;
+    (* text *)
+    NormalFont.draw (screen, 32, 400,
+       "welcome to SlimyCat!  Cats can't actually be slimy");
     (* palette *)
     ListUtil.appi
       (fn (tile,i) =>
