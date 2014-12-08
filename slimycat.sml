@@ -5,7 +5,7 @@ struct
   type screen = SDL.surface
   fun initscreen s = () (* ? *)
   val width = 1200
-  val height = 600
+  val height = 640
   val use_gl = false
   val ticks_per_second = 2
 
@@ -28,7 +28,7 @@ struct
     | edit (PAUSE orig) b = (orig, EDIT editor_init)
     | edit (EDIT e) b = (b, EDIT e)
  
-  type state = Board.board * mode
+  type state = Board.board * mode * (string list)
 
   (*
   val init_list =
@@ -39,7 +39,10 @@ struct
 
   val initstate = foldl (Board.insert) Board.empty init_list
   *)
-  val initstate = (Board.loadBoard "boards/board1.txt", EDIT editor_init)
+  val initstate = 
+    (Board.loadBoard "boards/board1.txt",
+     EDIT editor_init,
+     [])
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
@@ -100,23 +103,31 @@ struct
   end
 
   val instructions = 
-    ["Welcome to SlimyCat!\n (cats can't actually be slimy)",
+    ["Welcome to SlimyCat!",
     "Interface:",
-    "CLICK PALETTE TILE: select brush (edit mode)",
-    "CLICK BOARD TILE:   change tile (edit mode)",
-    "[SPACE]: start/pause the simulation",
-    "r:       restart the simulation and enter edit mode.",
+    "[SPACE]: start/pause",
+    "r:       restart in edit mode.",
     "m:       toggle music.",
-    "q:       quit."]
+    "q:       quit.",
+    "EDIT MODE:",
+    "Click a palette tile to select a brush.",
+    "Click the board to change a tile."]
+
+  val credits =
+    ["Credits:",
+     "Game code: Chris Martens and William Lovas",
+     "Libraries and fonts: Tom Murphy VII",
+     "Music and pixels: Chris Martens",
+     "Made in Standard ML for Ludum Dare 31"]
 
   fun fontDrawLines screen x y lines =
     ListUtil.mapi 
-      (fn (l,i) => NormalFont.draw (screen, x, y + i*32, l))
+      (fn (l,i) => NormalFont.draw (screen, x, y + i*18, l))
       lines
 
-  fun render screen (board, mode) = 
+  fun render screen (board, mode, cheevos) = 
   let in
-    SDL.clearsurface (screen, SDL.color(0wxff,0wxff,0wxff,0wxff));
+    SDL.clearsurface (screen, SDL.color(0wx1b,0wx38,0wx04,0wxff));
     (* floor *)
     List.tabulate (tiles_wide,
       (fn x => List.tabulate (tiles_high, (fn y => 
@@ -136,9 +147,14 @@ struct
        "welcome to SlimyCat!  Cats can't actually be slimy");
     *)
     fontDrawLines screen 
-      (Consts.tile_size * (Consts.tiles_wide + 1)) 
-      (Editor.palette_bottom + Consts.tile_size)
+      (#1 Consts.palette_pos) 
+      (Editor.palette_bottom)
       instructions;
+    fontDrawLines screen
+      10 520
+      credits;
+    fontDrawLines screen Consts.cheevo_x Consts.cheevo_y
+      ("Achievements:"::cheevos);
     (*
     NormalFont.draw (screen, Consts.tile_size * (Consts.tiles_wide + 1),
                       Editor.palette_bottom + Consts.tile_size,
@@ -184,7 +200,7 @@ struct
   *
   *  XXX factor out edit vs play mode event handling
   *)
-  fun handle_event e (board, mode) = 
+  fun handle_event e (board, mode, cheevos) = 
     case e of
          SDL.E_KeyDown {sym=SDL.SDLK_q} =>
          let in
@@ -192,33 +208,37 @@ struct
            NONE
          end
       | SDL.E_KeyDown {sym=SDL.SDLK_SPACE} =>
-          SOME (board, flip mode board)
+          SOME (board, flip mode board, cheevos)
       | SDL.E_KeyDown {sym=SDL.SDLK_r} =>
-          SOME (edit mode board)
-      | SDL.E_KeyDown {sym=SDL.SDLK_e} =>
-          SOME (edit mode board)
+          let
+            val (board,mode) = edit mode board
+          in
+            SOME (board,mode,cheevos)
+          end
+      (*| SDL.E_KeyDown {sym=SDL.SDLK_e} =>
+          SOME (edit mode board, cheevos)*)
       | SDL.E_KeyDown {sym=SDL.SDLK_m} =>
           (
             (if SDLMusic.is_paused () then
               SDLMusic.resume ()
             else
               SDLMusic.pause ());
-            SOME (board, mode)
+            SOME (board, mode, cheevos)
           )
       | e =>  
           (case mode of
-               PLAY _ => SOME (board, mode)
-             | PAUSE _ => SOME (board, mode)
+               PLAY _ => SOME (board, mode, cheevos)
+             | PAUSE _ => SOME (board, mode, cheevos)
              | EDIT editor_state => 
                  let
                    val (board, state) = Editor.handle_event e (board, editor_state)
                  in
-                   SOME (board, EDIT state)
+                   SOME (board, EDIT state, cheevos)
                  end)
 
-  fun tick (board, PLAY orig) = SOME (Simulate.step board, PLAY orig)
-    | tick (board, PAUSE orig) = SOME (board, PAUSE orig)
-    | tick (board, EDIT e) = SOME (board, EDIT e)
+  fun tick (board, PLAY orig, c) = SOME (Simulate.step board, PLAY orig, c)
+    | tick (board, PAUSE orig, c) = SOME (board, PAUSE orig, c)
+    | tick (board, EDIT e, c) = SOME (board, EDIT e, c)
 
 
   val (SOME song) = SDLMusic.load "assets/cat.wav"
