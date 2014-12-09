@@ -42,8 +42,8 @@ struct
   val cheevoFlood = "flash flood!"
   val cheevoSlimy = "slimy cat!"
   val cheevoFriends = "friends forever! ^2<3"
-  val cheevoAte = "happy kitty!  yum.."
-  val cheevoAteAll = "ALL the treats! ^3:3"
+  val cheevoAte = "treated well! ^3:3"
+  val cheevoAteAll = "ALL the treats!"
 
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
