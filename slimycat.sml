@@ -44,12 +44,14 @@ struct
   val cheevoFriends = "friends forever! ^2<3"
   val cheevoAte = "treated well! ^3:3"
   val cheevoAteAll = "ALL the treats!"
+  val cheevoDecision = "decision fatigue!"
 
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
      EDIT editor_init,
      map (fn s => (s, false))
-      [cheevoFlood, cheevoSlimy, cheevoFriends, cheevoAte, cheevoAteAll])
+      [cheevoFlood, cheevoSlimy, cheevoFriends, cheevoAte, cheevoAteAll,
+       cheevoDecision])
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
@@ -330,6 +332,17 @@ struct
 
   fun ateOne (board, board') = treats board' < treats board
   fun ateAll (board, board') = treats board > 0 andalso treats board' = 0
+
+  (* decision fatigue: a cat didn't eat a treat that was in front of it *)
+  fun fatigued (board, board') =
+    any board
+      (fn (pos, Cat dir) =>
+          let val facingpos = Simulate.move pos dir
+          in
+            Board.find (board, facingpos) = SOME Treat andalso
+            Board.find (board', facingpos) = SOME Treat
+          end
+        | _ => false)
   
   end (* local open Board *)
 
@@ -342,6 +355,7 @@ struct
       val c = if friendsForever board' then achieve cheevoFriends c else c
       val c = if ateOne (board, board') then achieve cheevoAte c else c
       val c = if ateAll (board, board') then achieve cheevoAteAll c else c
+      val c = if fatigued (board, board') then achieve cheevoDecision c else c
     in
       c
     end
