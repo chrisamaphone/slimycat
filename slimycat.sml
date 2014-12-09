@@ -28,7 +28,7 @@ struct
     | edit (PAUSE orig) b = (orig, EDIT editor_init)
     | edit (EDIT e) b = (b, EDIT e)
  
-  type state = Board.board * mode * (string list)
+  type state = Board.board * mode * (string * bool) list
 
   (*
   val init_list =
@@ -39,10 +39,13 @@ struct
 
   val initstate = foldl (Board.insert) Board.empty init_list
   *)
+  val cheevoFlood = "flash flood!"
+  val cheevoSlimy = "slimy cat!"
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
      EDIT editor_init,
-     [])
+     map (fn s => (s, false))
+      [cheevoFlood, cheevoSlimy])
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
@@ -154,7 +157,7 @@ struct
       10 520
       credits;
     fontDrawLines screen Consts.cheevo_x Consts.cheevo_y
-      ("Achievements:"::cheevos);
+      ("Achievements:"::map (fn (s, true) => s | _ => "") cheevos);
     (*
     NormalFont.draw (screen, Consts.tile_size * (Consts.tiles_wide + 1),
                       Editor.palette_bottom + Consts.tile_size,
@@ -236,7 +239,74 @@ struct
                    SOME (board, EDIT state, cheevos)
                  end)
 
-  fun tick (board, PLAY orig, c) = SOME (Simulate.step board, PLAY orig, c)
+  (*** achievements ***)
+
+  (* XXX some of this should be in Simulate?  or factored out, maybe.. *)
+
+  local open Board in
+
+  fun isSlime board pos = Board.find (board, pos) = SOME (Slime false)
+    (*
+    case Board.find (board, pos) of
+        SOME (Slime _) => true (* should this only be true on inactive slime? *)
+      | _ => false
+    *)
+
+  (* slimyCat is achieved if any Cat is surrounded completely by inactive slime 
+  *)
+  fun any board p =
+    Board.IntPairMap.foldli
+      (fn (pos, entity, b) => b orelse p (pos, entity))
+      false
+      board
+
+  fun slimyCat board =
+    let fun isCat (Cat _) = true
+          | isCat _ = false
+        fun neighbors pos = map (Simulate.move pos) [N, S, E, W] (* [N, S, E, W] *)
+    in
+      any board
+        (fn (pos, entity) =>
+              isCat entity andalso
+              List.all (isSlime board) (neighbors pos))
+    end
+
+  (* filledBoard is achieved if the previous board wasn't full and the current
+     board is *)
+  fun filledBoard (board, board') =
+    let val totalSquares =
+      (* main board *)
+      Consts.tiles_wide * Consts.tiles_high +
+      (* top and bottom "implicit walls" *)
+      Consts.tiles_wide * 2 +
+      (* left and right "implicit walls" *)
+      Consts.tiles_high * 2
+    in
+      Board.IntPairMap.numItems board < totalSquares andalso
+      Board.IntPairMap.numItems board' = totalSquares
+    end
+  
+  end (* local open Board *)
+
+  fun achieve s cheevos = map (fn (s', got) => (s', got orelse s = s')) cheevos
+
+  fun updateCheevos board board' c =
+    let
+      val c = if slimyCat board' then achieve cheevoSlimy c else c
+      val c = if filledBoard (board, board') then achieve cheevoFlood c else c
+    in
+      c
+    end
+
+  (*** end achievements ***)
+
+  fun tick (board, PLAY orig, c) =
+        let val board' = Simulate.step board
+            (* XXX need an "achievement state" for history-based achievements *)
+            val c' = updateCheevos board board' c
+        in
+          SOME (board', PLAY orig, c')
+        end
     | tick (board, PAUSE orig, c) = SOME (board, PAUSE orig, c)
     | tick (board, EDIT e, c) = SOME (board, EDIT e, c)
 
