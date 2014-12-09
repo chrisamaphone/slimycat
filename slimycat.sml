@@ -28,7 +28,7 @@ struct
     | edit (PAUSE orig) b = (orig, EDIT editor_init)
     | edit (EDIT e) b = (b, EDIT e)
  
-  type state = Board.board * mode * (string list)
+  type state = Board.board * mode * (string * bool) list
 
   (*
   val init_list =
@@ -39,10 +39,20 @@ struct
 
   val initstate = foldl (Board.insert) Board.empty init_list
   *)
+  val cheevoFlood = "flash flood!"
+  val cheevoSlimy = "slimy cat!"
+  val cheevoFriends = "friends forever! ^2<3"
+  val cheevoAte = "treated well! ^3:3"
+  val cheevoAteAll = "ALL the treats!"
+  val cheevoDecision = "decision fatigue?"
+  val cheevoStopped = "slime stopper!"
+
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
-     EDIT editor_init, [])
-     (* ["foo","bar","baz","asdfa","asdfasdfsdfd","sdalfjsd","asdfasd"]) *)
+     EDIT editor_init,
+     map (fn s => (s, false))
+      [cheevoFlood, cheevoSlimy, cheevoFriends, cheevoAte, cheevoAteAll,
+       cheevoDecision, cheevoStopped])
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
@@ -75,7 +85,7 @@ struct
 
   (* font stuff *)
   local
-    val charmap = " ABCDEFGHIJKLMNOPQRSTUVWXZY"
+    val charmap = " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 ^ "abcdefghijklmnopqrstuvwxyz"
                 ^ "0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?"
   in
@@ -163,7 +173,8 @@ struct
       credits;
     fontDrawLines screen Consts.cheevo_x Consts.cheevo_y
       ("Achievements:"::
-        (ListUtil.mapi (fn (s,i) => "^"^(Int.toString (i mod 6))^ s) cheevos));
+        (ListUtil.mapi (fn (s,i) => "^"^(Int.toString ((i+1) mod 6))^ s)
+        (map (fn (s, true) => s | _ => "") cheevos)));
     (*
     NormalFont.draw (screen, Consts.tile_size * (Consts.tiles_wide + 1),
                       Editor.palette_bottom + Consts.tile_size,
@@ -245,7 +256,126 @@ struct
                    SOME (board, EDIT state, cheevos)
                  end)
 
-  fun tick (board, PLAY orig, c) = SOME (Simulate.step board, PLAY orig, c)
+  (*** achievements ***)
+
+  (* XXX some of this should be in Simulate?  or factored out, maybe.. *)
+
+  local open Board in
+
+  fun isSlime board pos = Board.find (board, pos) = SOME (Slime false)
+  fun isCat board pos =
+    case Board.find (board, pos) of
+        SOME (Cat _) => true
+      | _ => false
+  fun blocked board pos =
+    case Board.find (board, pos) of
+        SOME Wall => true
+      | SOME (Slime _) => true
+      | _ => false
+
+  (* slimyCat is achieved if any Cat is surrounded completely by inactive slime 
+  *)
+  fun any board p =
+    Board.IntPairMap.foldli
+      (fn (pos, entity, b) => b orelse p (pos, entity))
+      false
+      board
+
+  fun neighbors pos = map (Simulate.move pos) [N, S, E, W]
+  fun entityIsCat (Cat _) = true
+    | entityIsCat _ = false
+  fun slimyCat board =
+    any board
+      (fn (pos, entity) =>
+            entityIsCat entity andalso
+            List.all (isSlime board) (neighbors pos))
+
+  (* filledBoard is achieved if the previous board wasn't full and the current
+     board is *)
+  fun filledBoard (board, board') =
+    let val totalSquares =
+      (* main board *)
+      Consts.tiles_wide * Consts.tiles_high +
+      (* top and bottom "implicit walls" *)
+      Consts.tiles_wide * 2 +
+      (* left and right "implicit walls" *)
+      Consts.tiles_high * 2
+    in
+      Board.IntPairMap.numItems board < totalSquares andalso
+      Board.IntPairMap.numItems board' = totalSquares
+    end
+
+  fun friendsForever board =
+    any board
+      (fn (pos, Cat _) =>
+          (* cat to the north and we're both surrounded by walls *)
+          let val n = Simulate.move pos N
+              val surrounds = map (Simulate.move n) [E, N, W]
+                            @ map (Simulate.move pos) [E, S, W]
+          in
+            isCat board n andalso List.all (blocked board) surrounds
+          end
+          orelse
+          (* cat to the east and we're both surrounded by walls *)
+          let val e = Simulate.move pos E
+              val surrounds = map (Simulate.move e) [N, E, S]
+                            @ map (Simulate.move pos) [N, W, S]
+          in
+            isCat board e andalso List.all (blocked board) surrounds
+          end
+        | (pos, _) => false)
+
+  fun treats board =
+    IntPairMap.numItems
+      (IntPairMap.filter (fn Treat => true | _ => false) board)
+
+  fun ateOne (board, board') = treats board' < treats board
+  fun ateAll (board, board') = treats board > 0 andalso treats board' = 0
+
+  (* decision fatigue: a cat didn't eat a treat that was in front of it *)
+  fun fatigued (board, board') =
+    any board
+      (fn (pos, Cat dir) =>
+          let val facingpos = Simulate.move pos dir
+          in
+            Board.find (board, facingpos) = SOME Treat andalso
+            Board.find (board', facingpos) = SOME Treat
+          end
+        | _ => false)
+  
+  (* slime on previous turn was blocked from growing by cat which is now a
+     neighbor *)
+  fun stoppedSlime (board, board') =
+    any board
+      (fn (pos, Slime true) => List.exists (isCat board') (neighbors pos)
+        | _ => false)
+
+  end (* local open Board *)
+
+  fun achieve s cheevos = map (fn (s', got) => (s', got orelse s = s')) cheevos
+
+  fun updateCheevos board board' c =
+    let
+      val c = if slimyCat board' then achieve cheevoSlimy c else c
+      val c = if filledBoard (board, board') then achieve cheevoFlood c else c
+      val c = if friendsForever board' then achieve cheevoFriends c else c
+      val c = if ateOne (board, board') then achieve cheevoAte c else c
+      val c = if ateAll (board, board') then achieve cheevoAteAll c else c
+      val c = if fatigued (board, board') then achieve cheevoDecision c else c
+      val c = if stoppedSlime (board, board') then achieve cheevoStopped c else c
+    in
+      c
+    end
+
+  (*** end achievements ***)
+
+  fun tick (board, PLAY orig, c) =
+        let val board' = Simulate.step board
+            (* XXX need an "achievement state" for history-based achievements *)
+            val c' = updateCheevos board board' c
+        in
+          SOME (board', PLAY orig, c')
+        end
     | tick (board, PAUSE orig, c) = SOME (board, PAUSE orig, c)
     | tick (board, EDIT e, c) = SOME (board, EDIT e, c)
 
