@@ -44,14 +44,15 @@ struct
   val cheevoFriends = "friends forever! ^2<3"
   val cheevoAte = "treated well! ^3:3"
   val cheevoAteAll = "ALL the treats!"
-  val cheevoDecision = "decision fatigue!"
+  val cheevoDecision = "decision fatigue?"
+  val cheevoStopped = "slime stopper!"
 
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
      EDIT editor_init,
      map (fn s => (s, false))
       [cheevoFlood, cheevoSlimy, cheevoFriends, cheevoAte, cheevoAteAll,
-       cheevoDecision])
+       cheevoDecision, cheevoStopped])
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
@@ -280,16 +281,14 @@ struct
       false
       board
 
+  fun neighbors pos = map (Simulate.move pos) [N, S, E, W]
+  fun entityIsCat (Cat _) = true
+    | entityIsCat _ = false
   fun slimyCat board =
-    let fun entityIsCat (Cat _) = true
-          | entityIsCat _ = false
-        fun neighbors pos = map (Simulate.move pos) [N, S, E, W] (* [N, S, E, W] *)
-    in
-      any board
-        (fn (pos, entity) =>
-              entityIsCat entity andalso
-              List.all (isSlime board) (neighbors pos))
-    end
+    any board
+      (fn (pos, entity) =>
+            entityIsCat entity andalso
+            List.all (isSlime board) (neighbors pos))
 
   (* filledBoard is achieved if the previous board wasn't full and the current
      board is *)
@@ -344,6 +343,13 @@ struct
           end
         | _ => false)
   
+  (* slime on previous turn was blocked from growing by cat which is now a
+     neighbor *)
+  fun stoppedSlime (board, board') =
+    any board
+      (fn (pos, Slime true) => List.exists (isCat board') (neighbors pos)
+        | _ => false)
+
   end (* local open Board *)
 
   fun achieve s cheevos = map (fn (s', got) => (s', got orelse s = s')) cheevos
@@ -356,6 +362,7 @@ struct
       val c = if ateOne (board, board') then achieve cheevoAte c else c
       val c = if ateAll (board, board') then achieve cheevoAteAll c else c
       val c = if fatigued (board, board') then achieve cheevoDecision c else c
+      val c = if stoppedSlime (board, board') then achieve cheevoStopped c else c
     in
       c
     end
