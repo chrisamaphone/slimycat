@@ -1,4 +1,4 @@
-OUTPUT_APP=Awesome
+OUTPUT_APP=SlimyCat
 ICON=assets/SlimyCat.icns
 OUTPUT_EXE=game.exe
 MAKE=make

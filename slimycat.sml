@@ -41,14 +41,15 @@ struct
   *)
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
-     EDIT editor_init,
-     [])
+     EDIT editor_init, [])
+     (* ["foo","bar","baz","asdfa","asdfasdfsdfd","sdalfjsd","asdfasd"]) *)
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
   val tiles_high = Consts.tiles_high
   val tile_size = Consts.tile_size
 
+  val imageBigCat = Graphics.requireimage "assets/slimycat.png"
   val imageFloor = Graphics.requireimage "assets/carpet.png"
   val imageWall = Graphics.requireimage "assets/wall.png"
   val imageTreat = Graphics.requireimage "assets/treat.png"
@@ -103,7 +104,7 @@ struct
   end
 
   val instructions = 
-    ["Welcome to SlimyCat!",
+    [(*"Welcome to SlimyCat!",*)
     "Interface:",
     "[SPACE]: start/pause",
     "r:       restart in edit mode.",
@@ -118,16 +119,19 @@ struct
      "Game code: Chris Martens and William Lovas",
      "Libraries and fonts: Tom Murphy VII",
      "Music and pixels: Chris Martens",
-     "Made in Standard ML for Ludum Dare 31"]
+     "Made with Standard ML, PyxelEdit, and Beepbox for Ludum Dare 31"]
 
+  val fonth = 18
   fun fontDrawLines screen x y lines =
     ListUtil.mapi 
-      (fn (l,i) => NormalFont.draw (screen, x, y + i*18, l))
+      (fn (l,i) => NormalFont.draw (screen, x, y + i*fonth, l))
       lines
 
   fun render screen (board, mode, cheevos) = 
   let in
     SDL.clearsurface (screen, SDL.color(0wx1b,0wx38,0wx04,0wxff));
+    (* big cat *)
+    SDL.blitall(imageBigCat, screen, width div 2, height*2 div 3);
     (* floor *)
     List.tabulate (tiles_wide,
       (fn x => List.tabulate (tiles_high, (fn y => 
@@ -150,11 +154,16 @@ struct
       (#1 Consts.palette_pos) 
       (Editor.palette_bottom)
       instructions;
+    HugeFont.draw (screen, 
+      #1 Consts.palette_pos, 
+      Editor.palette_bottom + fonth*(length instructions), 
+      "^1Welcome to ^5Slimy Cat!");
     fontDrawLines screen
       10 520
       credits;
     fontDrawLines screen Consts.cheevo_x Consts.cheevo_y
-      ("Achievements:"::cheevos);
+      ("Achievements:"::
+        (ListUtil.mapi (fn (s,i) => "^"^(Int.toString (i mod 6))^ s) cheevos));
     (*
     NormalFont.draw (screen, Consts.tile_size * (Consts.tiles_wide + 1),
                       Editor.palette_bottom + Consts.tile_size,
