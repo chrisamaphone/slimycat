@@ -41,11 +41,15 @@ struct
   *)
   val cheevoFlood = "flash flood!"
   val cheevoSlimy = "slimy cat!"
+  val cheevoFriends = "friends forever! ^2<3"
+  val cheevoAte = "happy kitty!  yum.."
+  val cheevoAteAll = "ALL the treats! ^3:3"
+
   val initstate = 
     (Board.loadBoard "boards/board1.txt",
      EDIT editor_init,
      map (fn s => (s, false))
-      [cheevoFlood, cheevoSlimy])
+      [cheevoFlood, cheevoSlimy, cheevoFriends, cheevoAte, cheevoAteAll])
 
   (* Board and rendering *)
   val tiles_wide = Consts.tiles_wide
@@ -78,7 +82,7 @@ struct
 
   (* font stuff *)
   local
-    val charmap = " ABCDEFGHIJKLMNOPQRSTUVWXZY"
+    val charmap = " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 ^ "abcdefghijklmnopqrstuvwxyz"
                 ^ "0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?"
   in
@@ -256,11 +260,15 @@ struct
   local open Board in
 
   fun isSlime board pos = Board.find (board, pos) = SOME (Slime false)
-    (*
+  fun isCat board pos =
     case Board.find (board, pos) of
-        SOME (Slime _) => true (* should this only be true on inactive slime? *)
+        SOME (Cat _) => true
       | _ => false
-    *)
+  fun blocked board pos =
+    case Board.find (board, pos) of
+        SOME Wall => true
+      | SOME (Slime _) => true
+      | _ => false
 
   (* slimyCat is achieved if any Cat is surrounded completely by inactive slime 
   *)
@@ -271,13 +279,13 @@ struct
       board
 
   fun slimyCat board =
-    let fun isCat (Cat _) = true
-          | isCat _ = false
+    let fun entityIsCat (Cat _) = true
+          | entityIsCat _ = false
         fun neighbors pos = map (Simulate.move pos) [N, S, E, W] (* [N, S, E, W] *)
     in
       any board
         (fn (pos, entity) =>
-              isCat entity andalso
+              entityIsCat entity andalso
               List.all (isSlime board) (neighbors pos))
     end
 
@@ -295,6 +303,33 @@ struct
       Board.IntPairMap.numItems board < totalSquares andalso
       Board.IntPairMap.numItems board' = totalSquares
     end
+
+  fun friendsForever board =
+    any board
+      (fn (pos, Cat _) =>
+          (* cat to the north and we're both surrounded by walls *)
+          let val n = Simulate.move pos N
+              val surrounds = map (Simulate.move n) [E, N, W]
+                            @ map (Simulate.move pos) [E, S, W]
+          in
+            isCat board n andalso List.all (blocked board) surrounds
+          end
+          orelse
+          (* cat to the east and we're both surrounded by walls *)
+          let val e = Simulate.move pos E
+              val surrounds = map (Simulate.move e) [N, E, S]
+                            @ map (Simulate.move pos) [N, W, S]
+          in
+            isCat board e andalso List.all (blocked board) surrounds
+          end
+        | (pos, _) => false)
+
+  fun treats board =
+    IntPairMap.numItems
+      (IntPairMap.filter (fn Treat => true | _ => false) board)
+
+  fun ateOne (board, board') = treats board' < treats board
+  fun ateAll (board, board') = treats board > 0 andalso treats board' = 0
   
   end (* local open Board *)
 
@@ -304,6 +339,9 @@ struct
     let
       val c = if slimyCat board' then achieve cheevoSlimy c else c
       val c = if filledBoard (board, board') then achieve cheevoFlood c else c
+      val c = if friendsForever board' then achieve cheevoFriends c else c
+      val c = if ateOne (board, board') then achieve cheevoAte c else c
+      val c = if ateAll (board, board') then achieve cheevoAteAll c else c
     in
       c
     end
